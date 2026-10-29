@@ -1,5 +1,5 @@
 // Generates Solana keypairs whose address ends with SUFFIX and uploads each one to the localpad address pool.
-// Runs on every CPU core. Usage (GitHub Actions sets these): SITE_URL=https://… ADMIN_TOKEN=… SUFFIX=Local node grind.mjs
+// Runs on every CPU core. Usage (GitHub Actions sets these): SITE_URL=https://… ADMIN_TOKEN=… SUFFIX=LP node grind.mjs
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads'
 import { cpus } from 'node:os'
 
@@ -23,8 +23,9 @@ function b58(bytes) {
 if (isMainThread) {
   const SITE = (process.env.SITE_URL || '').replace(/\/$/, '')
   const TOKEN = process.env.ADMIN_TOKEN || ''
-  const SUFFIX = process.env.SUFFIX || 'Local'
+  const SUFFIX = process.env.SUFFIX || 'LP'
   const MINUTES = Number(process.env.MINUTES || 340)
+  const MAX = Number(process.env.MAX || 0) // stop after this many addresses (0 = no limit)
   if (!SITE || !TOKEN) {
     console.error('SITE_URL and ADMIN_TOKEN are required')
     process.exit(1)
@@ -56,9 +57,15 @@ if (isMainThread) {
     w.on('message', async (m) => {
       if (m.count) tries += m.count
       if (m.secret) {
+        if (MAX && found >= MAX) return
         found++
         console.log(`found ${m.address}`)
         await upload(m.secret)
+        if (MAX && found >= MAX) {
+          console.log(`reached ${MAX} addresses, stopping`)
+          workers.forEach((x) => x.terminate())
+          setTimeout(() => process.exit(0), 5000)
+        }
       }
     })
     return w
