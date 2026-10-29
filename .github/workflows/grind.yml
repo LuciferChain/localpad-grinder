@@ -1,0 +1,38 @@
+name: Generate …Local addresses
+
+on:
+  workflow_dispatch:
+    inputs:
+      machines:
+        description: "How many machines to run at once (1-20)"
+        default: "20"
+      minutes:
+        description: "Minutes per machine (max 340)"
+        default: "340"
+
+jobs:
+  grind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        machine: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+    steps:
+      - name: Skip extra machines
+        if: ${{ matrix.machine > fromJSON(github.event.inputs.machines) }}
+        run: echo "skipped"
+      - uses: actions/checkout@v4
+        if: ${{ matrix.machine <= fromJSON(github.event.inputs.machines) }}
+      - uses: actions/setup-node@v4
+        if: ${{ matrix.machine <= fromJSON(github.event.inputs.machines) }}
+        with:
+          node-version: "22"
+      - name: Grind
+        if: ${{ matrix.machine <= fromJSON(github.event.inputs.machines) }}
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          SUFFIX: ${{ vars.SUFFIX || 'Local' }}
+          MINUTES: ${{ github.event.inputs.minutes }}
+        run: node grind.mjs
