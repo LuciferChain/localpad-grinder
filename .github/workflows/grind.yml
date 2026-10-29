@@ -1,14 +1,17 @@
-name: Generate …Local addresses
+name: Generate vanity addresses
 
 on:
   workflow_dispatch:
     inputs:
       machines:
         description: "How many machines to run at once (1-20)"
-        default: "20"
+        default: "1"
       minutes:
         description: "Minutes per machine (max 340)"
         default: "340"
+      count:
+        description: "Stop each machine after this many addresses (0 = no limit)"
+        default: "500"
 
 jobs:
   grind:
@@ -33,6 +36,7 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-          SUFFIX: ${{ vars.SUFFIX || 'Local' }}
+          SUFFIX: ${{ vars.SUFFIX || 'LP' }}
           MINUTES: ${{ github.event.inputs.minutes }}
+          MAX: ${{ github.event.inputs.count }}
         run: node grind.mjs
